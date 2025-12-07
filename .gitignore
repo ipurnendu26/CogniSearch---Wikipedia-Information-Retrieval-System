@@ -48,7 +48,10 @@ Thumbs.db
 # Project specific
 *.log
 .scrapy/
+repo.txt
+url_base.txt
 
 # Temporary files
 convert_to_pdf.py
 html_to_pdf.py
+convert_notebook_pdf.py
