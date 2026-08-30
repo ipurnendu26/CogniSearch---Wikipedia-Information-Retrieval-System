@@ -1,89 +1,85 @@
-# CogniSearch (Wikipedia-only IR)
+# CogniSearch — Wikipedia Information Retrieval System
 
-Python 3.12+ stack: Scrapy crawler, scikit-learn TF-IDF indexer, optional Word2Vec+FAISS semantic index, and Flask query processor with WordNet-based query expansion plus spelling suggestions. Domain is restricted to `en.wikipedia.org` with the seed at `https://en.wikipedia.org/wiki/Information_retrieval`.
+A reproducible information-retrieval project that crawls a bounded set of English Wikipedia pages, builds a TF-IDF index, optionally adds Word2Vec/FAISS semantic retrieval, and serves ranked queries through a Flask API.
+
+## Capabilities
+
+- Domain-restricted Scrapy crawler with page/depth limits and auto-throttling
+- TF-IDF document indexing and ranked retrieval
+- Query expansion and spelling suggestions using NLTK
+- Optional Word2Vec embeddings and FAISS nearest-neighbor search
+- Batch CSV evaluation artifacts and an interactive Flask endpoint
+- Deterministic document identifiers derived from source URLs
+
+## Responsible crawling defaults
+
+The crawler now obeys `robots.txt` by default, stays within `en.wikipedia.org`, filters non-article namespaces, and uses bounded page counts plus auto-throttling. Before crawling any other site, review its terms, robots policy, rate limits, and data license.
 
 ## Setup
-1. Create and activate a virtual env:
-   ```bash
-   python -m venv .venv
-   .\.venv\Scripts\activate
-   ```
-2. Install dependencies:
-   ```bash
-   pip install -U pip
-   pip install -r requirements.txt
-   ```
 
-## Directory Layout
-- `data/raw_html/` crawled HTML files (md5-hashed filenames)
-- `data/queries.csv` input queries (Q01-Q05)
-- `data/index.json` inverted index output
-- `data/ranked_results.csv` ranked output
-- `src/crawler/spiders/wiki_spider.py` Scrapy spider
-- `src/indexer.py` TF-IDF index builder (optional Word2Vec + FAISS semantic index)
-- `src/processor.py` batch + Flask query processor (WordNet expansion + spelling suggestions + optional semantic kNN)
-- `src/artifact_generator.py` pipeline runner for Mode A/B (semantic build + scrapyd scheduling optional)
-- `notebooks/Project_Report.ipynb` report skeleton
+```bash
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
 
-## Execution Modes (artifact_generator)
-- Mode A (report/minimal): crawl 10 pages, depth 1, top-K=3
-- Mode B (submission/expansive): crawl 100 pages, depth 3, top-K=10
+Run the small, report-oriented pipeline:
 
-Run pipeline end-to-end (defaults to Mode A):
 ```bash
 python -m src.artifact_generator --mode A --clean
 ```
-Run expansive submission artifacts:
+
+Run the larger checked configuration:
+
 ```bash
 python -m src.artifact_generator --mode B --clean
 ```
-Add semantic index build (Word2Vec + FAISS) and/or distributed crawl via scrapyd:
+
+Add the optional semantic index:
+
 ```bash
-python -m src.artifact_generator --mode B --clean --semantic --use-scrapyd --scrapyd-url http://localhost:6800
+python -m src.artifact_generator --mode B --clean --semantic
 ```
 
-## Individual Steps
-### Crawl (Scrapy)
+## Individual stages
+
 ```bash
 python -m scrapy runspider src/crawler/spiders/wiki_spider.py \
   -a seed_url=https://en.wikipedia.org/wiki/Information_retrieval \
-  -a output_dir=data/raw_html \
-  -a max_pages=10 -a max_depth=1 \
-  -a autothrottle_enabled=True -a ignore_robots=True
+  -a output_dir=data/raw_html -a max_pages=10 -a max_depth=1 \
+  -a autothrottle_enabled=True -a ignore_robots=False
+
+python -m src.indexer \
+  --html-dir data/raw_html \
+  --index-out data/index.json \
+  --model-out data/tfidf_model.pkl
+
+python -m src.processor \
+  --model data/tfidf_model.pkl \
+  --queries data/queries.csv \
+  --output data/ranked_results.csv \
+  --top-k 5
 ```
 
-### Index (TF-IDF)
+Serve the query API:
+
 ```bash
-python -m src.indexer --html-dir data/raw_html --index-out data/index.json --model-out data/tfidf_model.pkl
+python -m src.processor --model data/tfidf_model.pkl --serve --top-k 5 --port 5000
 ```
 
-### Index (Semantic: Word2Vec + FAISS)
-```bash
-python -m src.indexer --html-dir data/raw_html \
-  --index-out data/index.json --model-out data/tfidf_model.pkl \
-  --semantic --semantic-model-out data/semantic/word2vec.model \
-  --semantic-index-out data/semantic/faiss.index --vector-size 100
-```
+## Repository map
 
-### Process Queries (batch CSV)
-```bash
-python -m src.processor --model data/tfidf_model.pkl --queries data/queries.csv --output data/ranked_results.csv --top-k 5 --use-semantic
-```
+- `src/crawler/`: crawling and article filtering
+- `src/indexer.py`: TF-IDF and optional semantic indexes
+- `src/processor.py`: query processing, ranking, and API
+- `src/artifact_generator.py`: end-to-end pipeline orchestration
+- `data/`: checked-in sample crawl and generated retrieval artifacts
+- `notebooks/Project_Report.ipynb`: project report notebook
 
-### Serve Queries (Flask API)
-```bash
-python -m src.processor --model data/tfidf_model.pkl --serve --top-k 5 --port 5000 --use-semantic
-```
-POST a query:
-```bash
-curl -X POST http://localhost:5000/query -H "Content-Type: application/json" \
-  -d '{"query_text": "vector space model", "top_k": 5}'
+## Evaluation and limitations
 
-Response includes `corrected_query` and `suggestions` when spell-fixes apply; semantic kNN is used when available, with TF-IDF fallback.
-```
+The committed ranked results are a reproducibility snapshot, not evidence of general search quality. A stronger evaluation should use relevance judgments and report metrics such as Precision@k, Recall@k, MAP, or nDCG. Results depend on the crawl frontier, page versions, tokenization, expansion rules, and optional semantic settings. Pickled and FAISS artifacts should only be loaded from trusted sources.
 
-## Notes
-- Robot rules are ignored by default for testing; adjust `ignore_robots` if needed.
-- NLTK data is downloaded on-demand (wordnet, stopwords, punkt, omw-1.4).
-- Filenames are md5(url).html to keep deterministic doc IDs.
-- Crawl and submissions stay within `en.wikipedia.org`.
+## License
+
+Code is available under the [MIT License](LICENSE). Wikipedia content is governed by its own licensing and attribution requirements.

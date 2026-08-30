@@ -31,7 +31,7 @@ def run_crawl(seed_url: str, max_pages: int, max_depth: int):
     process = CrawlerProcess(
         settings={
             "LOG_LEVEL": "INFO",
-            "ROBOTSTXT_OBEY": False,
+            "ROBOTSTXT_OBEY": True,
             "AUTOTHROTTLE_ENABLED": True,
             "DEPTH_LIMIT": max_depth,
             "CLOSESPIDER_PAGECOUNT": max_pages,
@@ -44,7 +44,7 @@ def run_crawl(seed_url: str, max_pages: int, max_depth: int):
         max_pages=max_pages,
         max_depth=max_depth,
         autothrottle_enabled=True,
-        ignore_robots=True,
+        ignore_robots=False,
     )
     process.start()
 

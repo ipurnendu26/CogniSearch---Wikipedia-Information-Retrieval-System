@@ -19,7 +19,7 @@ class WikiSpider(scrapy.Spider):
         autothrottle_enabled: bool = True,
         autothrottle_start_delay: float = 0.5,
         autothrottle_max_delay: float = 5.0,
-        ignore_robots: bool = True,
+        ignore_robots: bool = False,
         *args,
         **kwargs,
     ):
