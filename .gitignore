@@ -55,3 +55,15 @@ url_base.txt
 convert_to_pdf.py
 html_to_pdf.py
 convert_notebook_pdf.py
+
+# Generated crawl, retrieval, and model artifacts
+data/raw_html/
+data/semantic/
+data/index.json
+data/ranked_results.csv
+data/tfidf_model.pkl
+
+# Secrets
+.env
+.env.*
+!.env.example
