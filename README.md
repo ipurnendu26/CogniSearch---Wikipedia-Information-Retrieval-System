@@ -87,3 +87,33 @@ Response includes `corrected_query` and `suggestions` when spell-fixes apply; se
 - NLTK data is downloaded on-demand (wordnet, stopwords, punkt, omw-1.4).
 - Filenames are md5(url).html to keep deterministic doc IDs.
 - Crawl and submissions stay within `en.wikipedia.org`.
+
+
+## Portfolio highlights
+
+- Implements the complete information-retrieval lifecycle: crawl, parse, index, retrieve, expand, rank, and serve
+- Supports lexical TF-IDF retrieval with an optional Word2Vec and FAISS semantic layer
+- Restricts crawling to an explicit Wikipedia domain and seed
+- Separates source code, query fixtures, generated indexes, and reports
+
+## Generated artifacts
+
+Crawled HTML, TF-IDF indexes, FAISS indexes, serialized models, and ranked-result files are intentionally excluded from Git. Generate them locally from the documented pipeline instead of committing large derived files. This keeps the repository reviewable and reproducible.
+
+## Evaluation roadmap
+
+The next version should include a labeled relevance set and report:
+
+- Precision@k
+- Recall@k
+- Mean reciprocal rank
+- nDCG@k
+- Query latency and index size
+- Lexical versus hybrid retrieval comparison
+- Ablation results for query expansion and spelling correction
+
+Until those artifacts are available, this repository demonstrates retrieval-system engineering rather than claiming production search quality.
+
+## Responsible crawling
+
+Respect Wikipedia's robots policy, rate limits, and terms of use. Use conservative concurrency and avoid redistributing large crawled page collections through the repository.
